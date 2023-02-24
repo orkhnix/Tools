@@ -48,7 +48,7 @@ Xu_install(){
 [ "$2" ] && pb="_$2"
 if [ ! -e "$HOME/ck/$1$pb" ];then
 echo -n "- Download $1...";
-TTaive "https://github.com/kakathic/Tools/raw/Vip/Library/$1/README.md" "$TMPDIR/$1.sh"
+TTaive "https://github.com/orkhnix/Tools/raw/Vip/Library/$1/README.md" "$TMPDIR/$1.sh"
 chmod 777 "$TMPDIR/$1.sh"
 cd $HOME
 . "$TMPDIR/$1.sh"
