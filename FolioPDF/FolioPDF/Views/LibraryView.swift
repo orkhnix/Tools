@@ -34,7 +34,6 @@ struct LibraryView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    header
                     HStack(spacing: 12) {
                         quickAction("Import PDF", icon: "square.and.arrow.down", color: Theme.accent) { librarySheet = .importPDF }
                         quickAction("Scan pages", icon: "viewfinder", color: Color.teal) { librarySheet = .scan }
@@ -48,9 +47,9 @@ struct LibraryView: View {
                     }
                     if store.documents.isEmpty {
                         ContentUnavailableView {
-                            Label("A fresh page", systemImage: "doc.text")
+                            Label("No documents", systemImage: "doc.text")
                         } description: {
-                            Text("Import a PDF, scan a document, or try the sample.")
+                            Text("Import a PDF to get started.")
                         } actions: {
                             Button("Create sample PDF") { store.makeWelcomeDocument() }.buttonStyle(.borderedProminent)
                         }
@@ -70,13 +69,13 @@ struct LibraryView: View {
                             }
                         }
                     }
-                    Text("NO ACCOUNT · NO APP-OPERATED UPLOADS")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 12)
                 }
                 .padding(20)
             }
-            .background(Theme.paper)
+            .background {
+                LinearGradient(colors: [Theme.accent.opacity(0.09), Theme.paper, Color.teal.opacity(0.07)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
+            }
             .navigationTitle("Folio")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Find a document")
@@ -174,24 +173,13 @@ struct LibraryView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("A LITTLE MORE CLARITY")
-                .font(.system(size: 10, weight: .bold, design: .monospaced)).tracking(2).foregroundStyle(Theme.accent)
-            Text("Make room\nfor good work.")
-                .font(.system(size: 35, weight: .bold, design: .serif)).lineSpacing(-2)
-            Text("Read, mark up, and put every page in place.")
-                .font(.subheadline).foregroundStyle(.secondary)
-        }.padding(.vertical, 6)
-    }
-
     private func quickAction(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 18) {
                 Image(systemName: icon).font(.title2)
                 Text(title).font(.subheadline.weight(.semibold))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
-                .foregroundStyle(color).background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 18))
+                .foregroundStyle(color).folioGlass(cornerRadius: 24, interactive: true)
         }.buttonStyle(.plain)
     }
 

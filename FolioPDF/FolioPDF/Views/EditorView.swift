@@ -24,6 +24,7 @@ struct EditorView: View {
     @StateObject private var model: EditorModel
     @State private var sheet: EditorSheet?
     @State private var pendingShare: URL?
+    @AppStorage("bookReadingMode") private var reading = true
     @State private var searching = false
     @State private var password = ""
     @State private var discardPrompt = false
@@ -42,14 +43,12 @@ struct EditorView: View {
                         Text(model.document.isEncrypted ? "Encrypted PDF · read-only" : "Document permissions · read-only")
                             .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(8)
                     }
-                    PDFCanvas(model: model)
-                    HStack {
-                        Text("\(min(model.pageIndex + 1, model.pageCount)) / \(model.pageCount)")
-                            .monospacedDigit().font(.caption.weight(.medium))
-                        Spacer()
-                        Text(model.isEditable ? model.tool.hint : "Scroll and zoom to read.")
-                            .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
-                    }.padding(.horizontal, 16).padding(.vertical, 10).background(.bar)
+                    if reading {
+                        BookReader(model: model)
+                    } else {
+                        PDFCanvas(model: model)
+                    }
+
                 }
             }
             .navigationTitle(model.url.deletingPathExtension().lastPathComponent)
@@ -59,13 +58,22 @@ struct EditorView: View {
                     Button("Close") { if !model.loadedSuccessfully || model.save() { dismiss() } }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if model.isEditable {
+                    Button {
+                        reading.toggle()
+                        searching = false
+                        model.tool = .browse
+                    } label: {
+                        Image(systemName: reading ? "pencil.and.outline" : "book")
+                    }
+                    .accessibilityLabel(reading ? "Edit PDF" : "Book reading mode")
+                    .disabled(model.document.isLocked || !model.loadedSuccessfully)
+                    if model.isEditable && !reading {
                         Button { model.undo() } label: { Image(systemName: "arrow.uturn.backward") }
                             .disabled(!model.canUndo).accessibilityLabel("Undo annotation or page edit")
                         Button(model.hasChanges ? "Save •" : "Save") { model.save() }
                     }
                     Menu {
-                        Button("Search text", systemImage: "magnifyingglass") { searching.toggle() }
+                        Button("Search text", systemImage: "magnifyingglass") { reading = false; model.tool = .browse; searching.toggle() }
                         Button("Pages", systemImage: "square.grid.2x2") { sheet = .pages }
                         Button("Share PDF", systemImage: "square.and.arrow.up") { share() }
                         Button("Recognize current page", systemImage: "text.viewfinder") {
@@ -84,7 +92,20 @@ struct EditorView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if model.isEditable { editingToolbar }
+                if !model.document.isLocked && model.loadedSuccessfully {
+                    VStack(spacing: 8) {
+                        if reading { readingControls }
+                        else {
+                            HStack {
+                                Text("\(min(model.pageIndex + 1, model.pageCount)) / \(model.pageCount)")
+                                    .font(.caption.monospacedDigit())
+                                Spacer()
+                                Text(model.tool.hint).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                            }.padding(.horizontal, 16)
+                            if model.isEditable { editingToolbar }
+                        }
+                    }.padding(.vertical, 8)
+                }
             }
             .overlay {
                 if model.recognizing { ProgressView("Reading this page…").padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) }
@@ -188,7 +209,22 @@ struct EditorView: View {
                     Circle().fill(Color(uiColor: model.color)).frame(width: 24, height: 24).padding(14)
                 }.accessibilityLabel("Ink color")
             }.padding(.horizontal, 10).padding(.vertical, 8)
-        }.background(.bar)
+        }.folioGlass(cornerRadius: 28).padding(.horizontal, 10)
+    }
+
+    private var readingControls: some View {
+        HStack(spacing: 24) {
+            Button { model.go(to: model.pageIndex - 1) } label: {
+                Image(systemName: "chevron.left").frame(width: 36, height: 40)
+            }.disabled(model.pageIndex == 0).accessibilityLabel("Previous page")
+            Text("\(model.pageIndex + 1) / \(model.pageCount)")
+                .font(.subheadline.weight(.medium).monospacedDigit()).frame(minWidth: 70)
+                .accessibilityLabel("Page \(model.pageIndex + 1) of \(model.pageCount)")
+            Button { model.go(to: model.pageIndex + 1) } label: {
+                Image(systemName: "chevron.right").frame(width: 36, height: 40)
+            }.disabled(model.pageIndex + 1 >= model.pageCount).accessibilityLabel("Next page")
+        }.buttonStyle(.plain).padding(.horizontal, 16).padding(.vertical, 4)
+            .folioGlass(cornerRadius: 28, interactive: true)
     }
 
     private var inkColors: [(String, UIColor)] { [("Blue", .systemBlue), ("Black", .black), ("Red", .systemRed), ("Green", .systemGreen)] }

@@ -15,6 +15,7 @@ struct PDFCanvas: UIViewRepresentable {
         pdf.displayDirection = .vertical
         pdf.backgroundColor = .secondarySystemBackground
         pdf.document = model.document
+        if let page = model.document.page(at: model.pageIndex) { pdf.go(to: page) }
         model.pdfView = pdf
         container.capture.onTap = { [weak model] in model?.handleTap($0) }
         container.capture.onStroke = { [weak model] in model?.addStroke($0) }

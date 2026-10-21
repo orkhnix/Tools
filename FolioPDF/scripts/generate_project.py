@@ -76,7 +76,7 @@ def configs(name, extra):
 project_configs = configs("project", {})
 app_configs = configs("app", {
     "PRODUCT_BUNDLE_IDENTIFIER": "com.example.FolioPDF", "INFOPLIST_FILE": "FolioPDF/Info.plist",
-    "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "1.0.1", "CURRENT_PROJECT_VERSION": "2",
+    "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "1.1.0", "CURRENT_PROJECT_VERSION": "3",
     "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon", "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
     "SUPPORTS_MACCATALYST": "NO", "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
 })
