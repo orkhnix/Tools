@@ -1,0 +1,44 @@
+name: Folio PDF unsigned IPA
+on:
+  workflow_dispatch:
+  push:
+    branches: [folio-pdf-build]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: FolioPDF
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Show selected Xcode
+        run: xcodebuild -version
+      - name: Test on iPhone Simulator
+        run: bash scripts/test_ios.sh
+      - name: Build unsigned device archive
+        run: |
+          xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/FolioPDF.xcarchive \
+            CODE_SIGNING_ALLOWED=NO archive
+      - name: Package unsigned IPA for later signing
+        run: |
+          mkdir -p build/package/Payload
+          cp -R build/FolioPDF.xcarchive/Products/Applications/FolioPDF.app build/package/Payload/
+          cd build/package
+          /usr/bin/zip -qry ../FolioPDF-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v7
+        with:
+          name: FolioPDF-unsigned-needs-signing
+          path: FolioPDF/build/FolioPDF-unsigned.ipa
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iOS-test-results
+          path: FolioPDF/build/*.xcresult
+          if-no-files-found: ignore
