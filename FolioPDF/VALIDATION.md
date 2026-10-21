@@ -1,49 +1,39 @@
 # Validation status
 
-Created 21 October 2026. This delivery contains source code. It contains no compiled `.app`, device archive, signed/unsigned `.ipa`, certificate, or provisioning profile.
+Updated 21 October 2026. An unsigned iOS device IPA was compiled, packaged, downloaded, and verified. It still requires signing and a matching provisioning profile before installation.
 
-## Completed in the authoring environment
+## Build evidence
 
-- Swift source syntax parsed using the Swift grammar for tree-sitter; no syntax errors detected.
-- Xcode OpenStep project parsed; source/resource paths and object-reference graph checked.
-- Both build targets and the shared FolioPDF scheme verified structurally.
-- Info.plist and the privacy manifest parsed with Python plistlib.
-- Asset catalog JSON and app icon file verified structurally.
-- Scheme XML parsed.
-- Build/test shell scripts checked with `bash -n`.
-- Project regeneration checked for deterministic output.
-- Source archive integrity and file inventory checked.
+- Repository: https://github.com/orkhnix/Tools/tree/folio-pdf-build/FolioPDF
+- Build: https://github.com/orkhnix/Tools/actions/runs/39642201220
+- Tested source commit: `740b6dc3010337d7c5cc856f360e37d83ad56ffe`
+- Xcode: 16.4 (16F6), GitHub macOS runner
+- Simulator compilation: succeeded
+- XCTest: 12 tests executed, zero failures
+- Release iOS device archive: succeeded
+- IPA packaging/upload: succeeded
+- Artifact: `FolioPDF-unsigned.ipa`, 233146 bytes
+- IPA SHA-256: `d746170cf48a8a074a0e5709797f6702ca9e68044b134bdb8de4c5c732efa0fb`
+- Bundle ID: `com.example.FolioPDF`, version 1.0 (build 1)
+- Device architecture: arm64; Mach-O platform: iOS device
+- Minimum iOS: 17.0
+- No developer signature, embedded provisioning profile, or executable encryption
+- ZIP integrity, compiled assets, privacy manifest, and exclusion of XCTest bundles from release package: verified
 
-These checks are not Swift type-checking, iOS compilation, XCTest execution, visual QA, or a substitute for running the app.
+The preceding source-only delivery was checked for Swift syntax, project references, plist/JSON/XML/YAML validity, shell syntax, icon structure, deterministic project regeneration, and source archive integrity. The blank-filename test failure found in the first run was corrected before the successful build above.
 
-## Not executed here
+## What the automated tests cover
 
-- Xcode compile, linker, and asset catalog compiler
-- All 12 XCTest methods in `FolioPDFTests/PDFOperationsTests.swift`
-- Simulator UI, accessibility, keyboard, navigation, and sheet behavior
-- Device scanning, permission-denial handling, photo import, OCR, memory, and performance
-- Device archive, code signing, IPA export, installation, or launch
-- The GitHub Actions workflow
+Page extraction and deletion; rejection of invalid/all-page operations; annotation persistence; images to PDF; imported original-file preservation; filename sanitization; merge order; undo and save persistence; password-export isolation; protected-PDF read-only behavior and original-byte sharing; protection of invalid files from accidental overwrite.
 
-## Required Mac checks
+## Remaining manual checks
 
-1. Open the Xcode project and resolve any compiler/SDK warnings or errors.
-2. Run `bash scripts/test_ios.sh` and inspect the `.xcresult` report. Fix failures before continuing.
-3. In Simulator, create a sample PDF; annotate, save, close, reopen, share to Files, then reopen the exported copy.
-4. Verify both landscape and portrait PDFs, rotated pages, text placement near page edges, multiline notes, highlights across lines/pages, ink and signature placement, erasing, and undo.
-5. Confirm page order, extraction, merge order, and the block on deleting every page.
-6. Open encrypted PDFs, test incorrect/correct passwords, and confirm read-only widgets and protection-preserving sharing.
-7. Export a password-protected copy, check that another PDF viewer asks for its password, and confirm the working copy stays unencrypted.
-8. Test failing/cancelled imports, unreadable PDFs, duplicate filenames, read/write failure, protected PDFs, and low-storage errors.
-9. Test iPhone and iPad layouts, largest accessibility text, VoiceOver focus, and dark appearance.
+1. Sign with an appropriate certificate and provisioning profile, install on the intended iPhone/iPad, and verify launch and PDF export/reopen.
+2. Exercise annotations, multiline notes, pen and signature placement on rotated/landscape pages and near page edges.
+3. Verify camera approval/denial, multipage scans, cancellation, and supported hardware.
+4. Test Files/iCloud providers, Open In, ordered photo imports, and OCR on representative real documents.
+5. Check iPad/iPhone layouts, VoiceOver, large text, dark appearance, and keyboard/sheet behavior.
+6. Check native PDFKit form behavior, encrypted PDFs, failing/cancelled imports, low storage, and representative large documents.
+7. Background/resume with edits open, retain original backups, and test persistence and memory pressure.
 
-## Required physical-device checks
-
-1. Test camera permission approval/denial, scanning cancellation, multipage capture, and unsupported-device behavior.
-2. Test Files/iCloud providers and Open In, photos from the ordered picker, and OCR on real scanned pages.
-3. Test drawing with a finger and Apple Pencil where available.
-4. Background/resume the app with edits open and verify persistence.
-5. Profile representative large documents and repeated imports/exports for memory pressure and temporary-file growth.
-6. Archive and export using your own signing configuration; verify installation, Developer Mode where required, launch, and round-trip PDF export on the intended phone.
-
-Only after these checks pass should a compiled build be described as tested or ready for use. Store distribution would require additional privacy, accessibility, security, compatibility, and release review.
+No physical-device testing, signing, installation, comprehensive visual QA, App Store review, or production-readiness certification is claimed. Documentation-only updates after the tested source commit do not change the app binary.

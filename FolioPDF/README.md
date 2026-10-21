@@ -2,7 +2,7 @@
 
 An original, native SwiftUI PDF workspace built with Apple's PDFKit, Vision, and VisionKit. Requires iOS/iPadOS 17 or later. No third-party app dependencies, login, subscription, analytics, or app-operated document uploads.
 
-**Delivery status: source project, not a compiled or signed IPA.** This project was authored in a Linux environment without Xcode or the iOS SDK. Swift syntax, project structure, and packaging were checked here. Compilation, XCTest execution, simulator/device behavior, camera behavior, and signing have not been verified. Do not treat this as a tested production release. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
+**Build status: unsigned IPA produced successfully.** GitHub Actions built the iOS device archive with Xcode 16.4 on macOS and all 12 automated iPhone Simulator tests passed. [Successful build](https://github.com/orkhnix/Tools/actions/runs/39642201220), source commit `740b6dc3010337d7c5cc856f360e37d83ad56ffe`. The downloaded IPA was checked for ZIP integrity, arm64 executable architecture, iOS device platform, required assets, and absence of encryption, a developer signature, and a provisioning profile. It requires iOS 17.0 or later and must be signed with your certificate and matching provisioning profile before installation. Physical-device behavior and visual/UI workflows have not been comprehensively verified. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
 
 ## Implemented in source
 
@@ -48,7 +48,7 @@ The Xcode alternative is **Product → Archive → Distribute App**, then choose
 
 ## Cloud Mac build
 
-The included `.github/workflows/ios.yml` runs Simulator tests on a GitHub-hosted Mac, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` as an Actions artifact after the preceding steps succeed. Put this project at a repository root and enable Actions, then run **iOS build and tests**. This workflow has not been run for this delivery. Account billing and runner availability follow your GitHub plan.
+The repository-root `.github/workflows/folio-ios.yml` builds the project in `FolioPDF/` on the `folio-pdf-build` branch. It compiles for the Simulator, runs the tests, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` after those steps succeed. [Build 39642201220](https://github.com/orkhnix/Tools/actions/runs/39642201220) completed successfully. Account billing and runner availability follow your GitHub plan.
 
 The unsigned artifact still needs a legitimate signing/provisioning step before iPhone installation. No signing certificates are included. The workflow does not deploy an app, upload to the App Store, or grant App Store Connect access.
 
