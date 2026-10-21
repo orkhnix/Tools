@@ -35,7 +35,11 @@ final class EditorModel: ObservableObject {
     let url: URL
     @Published var document: PDFDocument
     @Published var tool: EditorTool = .browse
-    @Published var pageIndex = 0
+    @Published var pageIndex = 0 { didSet { persistReadingState() } }
+    @Published private(set) var bookmarks: Set<Int> = [] { didSet { persistReadingState() } }
+    private let readingStore: ReadingStateStore
+    private var readingHistory: [ReadingState] = []
+    private var changing = false
     @Published var revision = 0
     @Published var hasChanges = false
     @Published var error: String?
@@ -58,8 +62,9 @@ final class EditorModel: ObservableObject {
     var canUndo: Bool { !history.isEmpty }
     var pageCount: Int { document.pageCount }
 
-    init(url: URL) {
+    init(url: URL, readingStore: ReadingStateStore = ReadingStateStore()) {
         self.url = url
+        self.readingStore = readingStore
         if let pdf = PDFDocument(url: url) { document = pdf }
         else {
             document = PDFDocument()
@@ -67,11 +72,13 @@ final class EditorModel: ObservableObject {
             error = FolioError.invalidPDF.localizedDescription
         }
         enforceReadOnlyWidgets()
+        if !document.isLocked { restoreReadingState() }
     }
 
     func unlock(_ password: String) -> Bool {
         guard document.unlock(withPassword: password) else { error = "The password is incorrect."; return false }
         enforceReadOnlyWidgets()
+        restoreReadingState()
         revision += 1
         return true
     }
@@ -85,21 +92,49 @@ final class EditorModel: ObservableObject {
         }
     }
 
+    private var readingState: ReadingState { ReadingState(pageIndex: pageIndex, bookmarks: bookmarks) }
+
+    private func restoreReadingState() {
+        let state = readingStore.load(url).clamped(pageCount: pageCount)
+        changing = true
+        pageIndex = state.pageIndex
+        bookmarks = state.bookmarks
+        changing = false
+    }
+
+    private func persistReadingState() {
+        guard loadedSuccessfully, !document.isLocked, !changing, !hasChanges else { return }
+        readingStore.save(readingState.clamped(pageCount: pageCount), for: url)
+    }
+
+    func removeBookmark(at index: Int) { bookmarks.remove(index) }
+
+    func toggleBookmark() {
+        guard pageCount > 0, !document.isLocked else { return }
+        if bookmarks.contains(pageIndex) { bookmarks.remove(pageIndex) }
+        else { bookmarks.insert(pageIndex) }
+    }
+
     private func checkpoint() {
         // A bounded history avoids retaining unlimited full-document snapshots.
         guard let data = document.dataRepresentation(), data.count <= 30 * 1_024 * 1_024 else {
             history.removeAll()
+            readingHistory.removeAll()
             return
         }
         history.append(data)
+        readingHistory.append(readingState)
         while history.count > 8 || history.reduce(0, { $0 + $1.count }) > 60 * 1_024 * 1_024 {
             history.removeFirst()
+            readingHistory.removeFirst()
         }
     }
 
     func change(_ action: () throws -> Void) {
         guard isEditable else { return }
         checkpoint()
+        changing = true
+        defer { changing = false }
         do {
             try action()
             hasChanges = true
@@ -107,7 +142,7 @@ final class EditorModel: ObservableObject {
             pdfView?.highlightedSelections = nil
             revision += 1
         } catch {
-            if !history.isEmpty { history.removeLast() }
+            if !history.isEmpty { history.removeLast(); readingHistory.removeLast() }
             self.error = error.localizedDescription
         }
     }
@@ -115,8 +150,12 @@ final class EditorModel: ObservableObject {
     func undo() {
         guard let data = history.last, let restored = PDFDocument(data: data) else { return }
         history.removeLast()
+        let state = readingHistory.removeLast().clamped(pageCount: restored.pageCount)
+        changing = true
         document = restored
-        pageIndex = min(pageIndex, max(0, restored.pageCount - 1))
+        pageIndex = state.pageIndex
+        bookmarks = state.bookmarks
+        changing = false
         hasChanges = true
         searchResults = []
         revision += 1
@@ -126,10 +165,11 @@ final class EditorModel: ObservableObject {
     func save() -> Bool {
         guard loadedSuccessfully else { return false }
         // Never rewrite an encrypted or permission-restricted original.
-        guard isEditable else { return true }
+        guard isEditable else { persistReadingState(); return true }
         do {
             try PDFOperations.data(for: document).write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
             hasChanges = false
+            persistReadingState()
             return true
         } catch { self.error = error.localizedDescription; return false }
     }
@@ -302,12 +342,20 @@ final class EditorModel: ObservableObject {
 
     func movePage(from: Int, to: Int) {
         guard (0..<pageCount).contains(from), (0..<pageCount).contains(to), from != to else { return }
-        change { document.exchangePage(at: from, withPageAt: to) }
+        change {
+            document.exchangePage(at: from, withPageAt: to)
+            bookmarks = Set(bookmarks.map { $0 == from ? to : ($0 == to ? from : $0) })
+        }
         pageIndex = to
     }
 
     func deletePages(_ indices: Set<Int>) {
-        change { try PDFOperations.deletePages(document, indices: indices) }
+        change {
+            try PDFOperations.deletePages(document, indices: indices)
+            bookmarks = Set(bookmarks.filter { !indices.contains($0) }.map { index in
+                index - indices.filter { $0 < index }.count
+            })
+        }
         pageIndex = min(pageIndex, max(0, pageCount - 1))
     }
 

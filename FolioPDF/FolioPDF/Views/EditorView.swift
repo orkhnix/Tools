@@ -3,10 +3,13 @@ import SwiftUI
 import PDFKit
 
 private enum EditorSheet: Identifiable {
-    case pages, signature, text, note, comment, recognized, password, share(URL)
+    case pages, bookmarks, jump, appearance, signature, text, note, comment, recognized, password, share(URL)
     var id: String {
         switch self {
         case .pages: return "pages"
+        case .bookmarks: return "bookmarks"
+        case .jump: return "jump"
+        case .appearance: return "appearance"
         case .signature: return "signature"
         case .text: return "text"
         case .note: return "note"
@@ -25,6 +28,11 @@ struct EditorView: View {
     @State private var sheet: EditorSheet?
     @State private var pendingShare: URL?
     @AppStorage("bookReadingMode") private var reading = true
+    @AppStorage("appAppearance") private var appearance = AppAppearance.system.rawValue
+    @AppStorage("nightPages") private var nightPages = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var focused = false
+    @State private var jumpPage = ""
     @State private var searching = false
     @State private var password = ""
     @State private var discardPrompt = false
@@ -39,20 +47,26 @@ struct EditorView: View {
                     ContentUnavailableView("Unable to open PDF", systemImage: "exclamationmark.triangle")
                 } else {
                     if searching { searchBar }
-                    if !model.isEditable {
+                    if !model.isEditable && !focused {
                         Text(model.document.isEncrypted ? "Encrypted PDF · read-only" : "Document permissions · read-only")
                             .font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(8)
                     }
                     if reading {
-                        BookReader(model: model)
+                        BookReader(model: model, onToggleControls: toggleFocus)
+                            .id(reduceMotion)
                     } else {
                         PDFCanvas(model: model)
                     }
 
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background((reading ? (nightPages ? Color.black : Color.white) : Theme.paper).ignoresSafeArea())
             .navigationTitle(model.url.deletingPathExtension().lastPathComponent)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(focused ? .hidden : .visible, for: .navigationBar)
+            .statusBarHidden(focused)
+            .persistentSystemOverlays(focused ? .hidden : .automatic)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close") { if !model.loadedSuccessfully || model.save() { dismiss() } }
@@ -60,6 +74,7 @@ struct EditorView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         reading.toggle()
+                        focused = false
                         searching = false
                         model.tool = .browse
                     } label: {
@@ -73,6 +88,16 @@ struct EditorView: View {
                         Button(model.hasChanges ? "Save •" : "Save") { model.save() }
                     }
                     Menu {
+                        Button("Focus reading", systemImage: "arrow.up.left.and.arrow.down.right") {
+                            reading = true; model.tool = .browse; searching = false
+                            setFocus(true)
+                        }
+                        Button(model.bookmarks.contains(model.pageIndex) ? "Remove bookmark" : "Bookmark page",
+                               systemImage: model.bookmarks.contains(model.pageIndex) ? "bookmark.fill" : "bookmark") { model.toggleBookmark() }
+                        Button("Bookmarks", systemImage: "bookmark") { sheet = .bookmarks }
+                        Button("Go to page", systemImage: "number") { openJump() }
+                        Button("Appearance", systemImage: "circle.lefthalf.filled") { sheet = .appearance }
+                        Divider()
                         Button("Search text", systemImage: "magnifyingglass") { reading = false; model.tool = .browse; searching.toggle() }
                         Button("Pages", systemImage: "square.grid.2x2") { sheet = .pages }
                         Button("Share PDF", systemImage: "square.and.arrow.up") { share() }
@@ -92,7 +117,7 @@ struct EditorView: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !model.document.isLocked && model.loadedSuccessfully {
+                if !focused && !model.document.isLocked && model.loadedSuccessfully {
                     VStack(spacing: 8) {
                         if reading { readingControls }
                         else {
@@ -116,6 +141,9 @@ struct EditorView: View {
             }) { route in
                 switch route {
                 case .pages: PageOrganizer(model: model)
+                case .bookmarks: bookmarksView
+                case .jump: jumpView
+                case .appearance: AppearanceSettingsView()
                 case .signature: SignatureSheet { model.signature = $0; model.tool = .sign }
                 case .text:
                     TextEntrySheet(title: "Add text", prompt: "This adds a text annotation. After tapping Place, tap the page where it should appear.") {
@@ -155,6 +183,7 @@ struct EditorView: View {
                 if value != nil { sheet = .comment }
             }
         }
+        .preferredColorScheme(AppAppearance(rawValue: appearance)?.colorScheme)
         .interactiveDismissDisabled()
     }
 
@@ -217,14 +246,71 @@ struct EditorView: View {
             Button { model.go(to: model.pageIndex - 1) } label: {
                 Image(systemName: "chevron.left").frame(width: 36, height: 40)
             }.disabled(model.pageIndex == 0).accessibilityLabel("Previous page")
-            Text("\(model.pageIndex + 1) / \(model.pageCount)")
-                .font(.subheadline.weight(.medium).monospacedDigit()).frame(minWidth: 70)
-                .accessibilityLabel("Page \(model.pageIndex + 1) of \(model.pageCount)")
+            Button { openJump() } label: {
+                VStack(spacing: 2) {
+                    Text("\(model.pageIndex + 1) / \(model.pageCount)")
+                        .font(.subheadline.weight(.medium).monospacedDigit())
+                    Text("\(Int(Double(model.pageIndex + 1) / Double(max(1, model.pageCount)) * 100))%")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }.frame(minWidth: 70)
+            }.accessibilityLabel("Page \(model.pageIndex + 1) of \(model.pageCount). Go to page")
+                .accessibilityIdentifier("reader-page")
             Button { model.go(to: model.pageIndex + 1) } label: {
                 Image(systemName: "chevron.right").frame(width: 36, height: 40)
             }.disabled(model.pageIndex + 1 >= model.pageCount).accessibilityLabel("Next page")
         }.buttonStyle(.plain).padding(.horizontal, 16).padding(.vertical, 4)
             .folioGlass(cornerRadius: 28, interactive: true)
+    }
+
+    private func toggleFocus() { setFocus(!focused) }
+
+    private func setFocus(_ value: Bool) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { focused = value }
+    }
+
+    private func openJump() { jumpPage = String(model.pageIndex + 1); sheet = .jump }
+
+    private var jumpView: some View {
+        NavigationStack {
+            Form {
+                Section("Page 1–\(model.pageCount)") {
+                    TextField("Page number", text: $jumpPage).keyboardType(.numberPad)
+                        .accessibilityIdentifier("jump-page-input")
+                    Button("Go") {
+                        if let number = Int(jumpPage), (1...max(1, model.pageCount)).contains(number) {
+                            model.go(to: number - 1); sheet = nil
+                        }
+                    }.disabled(Int(jumpPage).map { !(1...max(1, model.pageCount)).contains($0) } ?? true)
+                }
+            }.navigationTitle("Go to page").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { sheet = nil } } }
+        }.presentationDetents([.medium])
+    }
+
+    private var bookmarksView: some View {
+        NavigationStack {
+            Group {
+                if model.bookmarks.isEmpty {
+                    ContentUnavailableView("No bookmarks", systemImage: "bookmark",
+                                           description: Text("Bookmark a page from the document menu."))
+                } else {
+                    List {
+                        ForEach(model.bookmarks.sorted(), id: \.self) { index in
+                            Button {
+                                model.go(to: index); sheet = nil
+                            } label: {
+                                Label("Page \(index + 1)", systemImage: "bookmark.fill")
+                            }.swipeActions {
+                                Button("Remove", role: .destructive) {
+                                    model.removeBookmark(at: index)
+                                }
+                            }
+                        }
+                    }
+                }
+            }.navigationTitle("Bookmarks").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { sheet = nil } } }
+        }
     }
 
     private var inkColors: [(String, UIColor)] { [("Blue", .systemBlue), ("Black", .black), ("Red", .systemRed), ("Green", .systemGreen)] }

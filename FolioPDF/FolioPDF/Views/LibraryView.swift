@@ -6,7 +6,7 @@ import VisionKit
 import ImageIO
 
 private enum LibrarySheet: String, Identifiable {
-    case importPDF, scan
+    case importPDF, scan, appearance
     var id: String { rawValue }
 }
 
@@ -84,7 +84,9 @@ struct LibraryView: View {
                     Button(selecting ? "Done" : "Select") { selecting.toggle(); selected = [] }
                         .disabled(store.documents.isEmpty)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { librarySheet = .appearance } label: { Image(systemName: "circle.lefthalf.filled") }
+                        .accessibilityLabel("Appearance")
                     Menu {
                         Button("Import PDF", systemImage: "doc.badge.plus") { librarySheet = .importPDF }
                         Button("Photos to PDF", systemImage: "photo.on.rectangle") { choosingPhotos = true }
@@ -137,6 +139,7 @@ struct LibraryView: View {
                 }
             }) { route in
                 switch route {
+                case .appearance: AppearanceSettingsView()
                 case .importPDF:
                     PDFDocumentPicker { urls in
                         pendingImport = urls
@@ -208,6 +211,7 @@ struct LibraryView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
         }.buttonStyle(.plain)
+            .accessibilityIdentifier("document-" + item.id)
             .contextMenu {
                 Button("Rename", systemImage: "pencil") { newName = item.name; renaming = item }
                 Button("Duplicate", systemImage: "doc.on.doc") { store.duplicate(item) }

@@ -29,13 +29,13 @@ def serialize(value, level=0):
     return json.dumps(str(value))
 
 
-app_sources, test_sources, resources, refs = [], [], [], []
-for path in sorted(ROOT.glob("FolioPDF/**/*.swift")) + sorted(ROOT.glob("FolioPDFTests/*.swift")):
+app_sources, test_sources, ui_sources, resources, refs = [], [], [], [], []
+for path in sorted(ROOT.glob("FolioPDF/**/*.swift")) + sorted(ROOT.glob("FolioPDFTests/*.swift")) + sorted(ROOT.glob("FolioPDFUITests/*.swift")):
     relative = path.relative_to(ROOT).as_posix()
     ref = add(relative, "PBXFileReference", lastKnownFileType="sourcecode.swift", path=relative, sourceTree="SOURCE_ROOT")
     refs.append(ref)
     build = add("build:" + relative, "PBXBuildFile", fileRef=ref)
-    (test_sources if relative.startswith("FolioPDFTests/") else app_sources).append(build)
+    (ui_sources if relative.startswith("FolioPDFUITests/") else test_sources if relative.startswith("FolioPDFTests/") else app_sources).append(build)
 
 for relative, filetype in [
     ("FolioPDF/Assets.xcassets", "folder.assetcatalog"),
@@ -49,7 +49,8 @@ for relative, filetype in [
 
 app_product = add("product:app", "PBXFileReference", explicitFileType="wrapper.application", path="FolioPDF.app", sourceTree="BUILT_PRODUCTS_DIR")
 test_product = add("product:tests", "PBXFileReference", explicitFileType="wrapper.cfbundle", path="FolioPDFTests.xctest", sourceTree="BUILT_PRODUCTS_DIR")
-products = add("group:products", "PBXGroup", children=[app_product, test_product], name="Products", sourceTree="<group>")
+ui_product = add("product:uitests", "PBXFileReference", explicitFileType="wrapper.cfbundle", path="FolioPDFUITests.xctest", sourceTree="BUILT_PRODUCTS_DIR")
+products = add("group:products", "PBXGroup", children=[app_product, test_product, ui_product], name="Products", sourceTree="<group>")
 main = add("group:main", "PBXGroup", children=refs + [products], sourceTree="<group>")
 
 
@@ -76,13 +77,19 @@ def configs(name, extra):
 project_configs = configs("project", {})
 app_configs = configs("app", {
     "PRODUCT_BUNDLE_IDENTIFIER": "com.example.FolioPDF", "INFOPLIST_FILE": "FolioPDF/Info.plist",
-    "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "1.1.0", "CURRENT_PROJECT_VERSION": "3",
+    "GENERATE_INFOPLIST_FILE": "NO", "MARKETING_VERSION": "1.2.0", "CURRENT_PROJECT_VERSION": "4",
     "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon", "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
     "SUPPORTS_MACCATALYST": "NO", "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks",
 })
 test_configs = configs("tests", {
     "PRODUCT_BUNDLE_IDENTIFIER": "com.example.FolioPDFTests", "GENERATE_INFOPLIST_FILE": "YES",
     "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/FolioPDF.app/FolioPDF", "BUNDLE_LOADER": "$(TEST_HOST)",
+    "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @loader_path/Frameworks",
+})
+
+ui_configs = configs("uitests", {
+    "PRODUCT_BUNDLE_IDENTIFIER": "com.example.FolioPDFUITests", "GENERATE_INFOPLIST_FILE": "YES",
+    "TEST_TARGET_NAME": "FolioPDF",
     "LD_RUNPATH_SEARCH_PATHS": "$(inherited) @executable_path/Frameworks @loader_path/Frameworks",
 })
 
@@ -101,8 +108,11 @@ app = add("target:app", "PBXNativeTarget", buildConfigurationList=app_configs,
 tests = add("target:tests", "PBXNativeTarget", buildConfigurationList=test_configs,
             buildPhases=[phase("tests:sources", "PBXSourcesBuildPhase", test_sources), phase("tests:frameworks", "PBXFrameworksBuildPhase", []), phase("tests:resources", "PBXResourcesBuildPhase", [])],
             buildRules=[], dependencies=[dependency], name="FolioPDFTests", productName="FolioPDFTests", productReference=test_product, productType="com.apple.product-type.bundle.unit-test")
+uitests = add("target:uitests", "PBXNativeTarget", buildConfigurationList=ui_configs,
+              buildPhases=[phase("uitests:sources", "PBXSourcesBuildPhase", ui_sources), phase("uitests:frameworks", "PBXFrameworksBuildPhase", []), phase("uitests:resources", "PBXResourcesBuildPhase", [])],
+              buildRules=[], dependencies=[dependency], name="FolioPDFUITests", productName="FolioPDFUITests", productReference=ui_product, productType="com.apple.product-type.bundle.ui-testing")
 project = add("project", "PBXProject", attributes={"LastUpgradeCheck": "1600", "BuildIndependentTargetsInParallel": "YES", "TargetAttributes": {app: {"CreatedOnToolsVersion": "16.0", "ProvisioningStyle": "Automatic"}, tests: {"CreatedOnToolsVersion": "16.0", "TestTargetID": app}}},
-              buildConfigurationList=project_configs, compatibilityVersion="Xcode 14.0", developmentRegion="en", hasScannedForEncodings="0", knownRegions=["en", "Base"], mainGroup=main, productRefGroup=products, projectDirPath="", projectRoot="", targets=[app, tests])
+              buildConfigurationList=project_configs, compatibilityVersion="Xcode 14.0", developmentRegion="en", hasScannedForEncodings="0", knownRegions=["en", "Base"], mainGroup=main, productRefGroup=products, projectDirPath="", projectRoot="", targets=[app, tests, uitests])
 
 folder = ROOT / "FolioPDF.xcodeproj"
 folder.mkdir(exist_ok=True)
@@ -117,7 +127,9 @@ scheme_dir.mkdir(parents=True, exist_ok=True)
     </BuildActionEntry>
   </BuildActionEntries></BuildAction>
   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES">
-    <Testables><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{tests}" BuildableName="FolioPDFTests.xctest" BlueprintName="FolioPDFTests" ReferencedContainer="container:FolioPDF.xcodeproj"/></TestableReference></Testables>
+    <Testables><TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{tests}" BuildableName="FolioPDFTests.xctest" BlueprintName="FolioPDFTests" ReferencedContainer="container:FolioPDF.xcodeproj"/></TestableReference>
+      <TestableReference skipped="NO"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{uitests}" BuildableName="FolioPDFUITests.xctest" BlueprintName="FolioPDFUITests" ReferencedContainer="container:FolioPDF.xcodeproj"/></TestableReference>
+    </Testables>
   </TestAction>
   <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.IDEFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugServiceExtension="internal" allowLocationSimulation="YES">
     <BuildableProductRunnable runnableDebuggingMode="0"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{app}" BuildableName="FolioPDF.app" BlueprintName="FolioPDF" ReferencedContainer="container:FolioPDF.xcodeproj"/></BuildableProductRunnable>

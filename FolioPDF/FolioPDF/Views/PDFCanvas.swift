@@ -13,7 +13,7 @@ struct PDFCanvas: UIViewRepresentable {
         pdf.autoScales = true
         pdf.displayMode = .singlePageContinuous
         pdf.displayDirection = .vertical
-        pdf.backgroundColor = .secondarySystemBackground
+        pdf.backgroundColor = .white
         pdf.document = model.document
         if let page = model.document.page(at: model.pageIndex) { pdf.go(to: page) }
         model.pdfView = pdf

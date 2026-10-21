@@ -33,6 +33,13 @@ jobs:
         env:
           FOLIO_TEST_ACTION: test-without-building
         run: bash scripts/test_ios.sh
+      - name: Export UI test screenshots
+        if: always()
+        continue-on-error: true
+        run: |
+          for result in build/*.xcresult; do
+            xcrun xcresulttool export attachments --path "$result" --output-path build/screenshots
+          done
       - name: Build unsigned device archive
         run: |
           xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Release \
@@ -53,5 +60,7 @@ jobs:
         if: always()
         with:
           name: iOS-test-results
-          path: FolioPDF/build/*.xcresult
+          path: |
+            FolioPDF/build/*.xcresult
+            FolioPDF/build/screenshots
           if-no-files-found: ignore

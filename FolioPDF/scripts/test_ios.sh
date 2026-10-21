@@ -23,6 +23,6 @@ xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Debug \
   -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
   -derivedDataPath build/DerivedData -parallel-testing-enabled NO \
   -maximum-concurrent-test-simulator-destinations 1 \
-  -test-timeouts-enabled YES -default-test-execution-time-allowance 30 \
-  -maximum-test-execution-time-allowance 60 \
+  -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
+  -maximum-test-execution-time-allowance 90 \
   -resultBundlePath "build/Tests-$(date +%s).xcresult" CODE_SIGNING_ALLOWED=NO "$test_action"

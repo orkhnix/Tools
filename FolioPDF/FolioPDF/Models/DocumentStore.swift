@@ -117,13 +117,22 @@ final class DocumentStore: ObservableObject {
     }
 
     func delete(_ item: LibraryDocument) {
-        do { try FileManager.default.removeItem(at: item.url); reload() }
+        do {
+            try FileManager.default.removeItem(at: item.url)
+            ReadingStateStore().remove(item.url)
+            reload()
+        }
         catch { self.error = error.localizedDescription }
     }
 
     func rename(_ item: LibraryDocument, to name: String) {
         guard Self.safeName(name) != item.name else { return }
-        do { try FileManager.default.moveItem(at: item.url, to: availableURL(named: name)); reload() }
+        do {
+            let destination = availableURL(named: name)
+            try FileManager.default.moveItem(at: item.url, to: destination)
+            ReadingStateStore().move(from: item.url, to: destination)
+            reload()
+        }
         catch { self.error = error.localizedDescription }
     }
 
