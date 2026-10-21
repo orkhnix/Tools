@@ -5,16 +5,16 @@ Updated 21 October 2026. An unsigned iOS device IPA was compiled, packaged, down
 ## Build evidence
 
 - Repository: https://github.com/orkhnix/Tools/tree/folio-pdf-build/FolioPDF
-- Build: https://github.com/orkhnix/Tools/actions/runs/39646444971
-- Tested source commit: `d11d5cb3290654ca5a84873dc2f0fdab2d90faf6`
-- Xcode: 16.4 (16F6), GitHub macOS runner
+- Build: https://github.com/orkhnix/Tools/actions/runs/39650897234
+- Tested source commit: `0a69323b1eb1ac7aac993b30dee302b44ed19cc5`
+- Xcode: 26.3 (17C529), GitHub macOS runner
 - Simulator compilation: succeeded
-- XCTest: 16 tests executed, zero failures
+- XCTest: 20 tests executed, zero failures
 - Release iOS device archive: succeeded
 - IPA packaging/upload: succeeded
-- Artifact: `FolioPDF-unsigned.ipa`, 245930 bytes
-- IPA SHA-256: `d488fffee34b58f05816995e30d48b89ccf682fa9681b6b1bfb54d7e771b1f6f`
-- Bundle ID: `com.example.FolioPDF`, version 1.0.1 (build 2)
+- Artifact: `FolioPDF-unsigned.ipa`, 259581 bytes
+- IPA SHA-256: `1df522124377cb4c6532fc774884b19c263014da65380077b4abe9f97a93994b`
+- Bundle ID: `com.example.FolioPDF`, version 1.1.0 (build 3)
 - Device architecture: arm64; Mach-O platform: iOS device
 - Minimum iOS: 17.0
 - No developer signature, embedded provisioning profile, or executable encryption
@@ -41,3 +41,9 @@ No physical-device testing, signing, installation, comprehensive visual QA, App 
 ## Version 1.0.1 import regression checks
 
 The importer now stages app-owned copies using a worker thread. Tests confirm that a blocked reader leaves the main thread responsive, a stalled reader times out, invalid input leaves a visible error and clears progress, and a later valid PDF still imports after an invalid file in the same batch. These four tests and the preceding twelve passed in the build above. The native Files-picker flow and the user-reported file still require confirmation on the physical device.
+
+## Version 1.1.0 reader checks
+
+Four additional XCTest cases cover horizontal page-curl configuration and first/last-page boundaries; page-jump clamping, edited-page refresh and the Reduce Motion transition; canceled and completed page turns including stale state during an interactive turn; and an empty document. Book mode uses bounded adjacent-page rendering, and continuous PDFKit mode provides text selection, forms, links and annotation editing.
+
+Manual checks for this release: page curl and zoom gestures on a physical iPhone and iPad, orientation changes, native Liquid Glass on iOS 26, material fallback on iOS 17–18, and switching between book and editing views at the same page. These checks are not represented as automated visual or physical-device testing.

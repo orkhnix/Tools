@@ -2,14 +2,15 @@
 
 An original, native SwiftUI PDF workspace built with Apple's PDFKit, Vision, and VisionKit. Requires iOS/iPadOS 17 or later. No third-party app dependencies, login, subscription, analytics, or app-operated document uploads.
 
-**Build status: version 1.0.1 (2), unsigned IPA produced successfully.** GitHub Actions built the iOS device archive with Xcode 16.4 on macOS and all 16 automated iPhone Simulator tests passed. [Successful build](https://github.com/orkhnix/Tools/actions/runs/39646444971), source commit `d11d5cb3290654ca5a84873dc2f0fdab2d90faf6`. The downloaded IPA was checked for ZIP integrity, arm64 executable architecture, iOS device platform, required assets, and absence of encryption, a developer signature, and a provisioning profile. It requires iOS 17.0 or later and must be signed with your certificate and matching provisioning profile before installation. Physical-device behavior and visual/UI workflows have not been comprehensively verified. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
+**Build status: version 1.1.0 (3), unsigned IPA produced successfully.** GitHub Actions built the iOS device archive with Xcode 26.3 on macOS and all 20 automated iPhone Simulator tests passed. [Successful build](https://github.com/orkhnix/Tools/actions/runs/39650897234), source commit `0a69323b1eb1ac7aac993b30dee302b44ed19cc5`. The downloaded IPA was checked for ZIP integrity, arm64 executable architecture, iOS device platform, required assets, and absence of encryption, a developer signature, and a provisioning profile. It requires iOS 17.0 or later and must be signed with your certificate and matching provisioning profile before installation. Physical-device behavior and visual/UI workflows have not been comprehensively verified. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
 
 ## Implemented in source
 
 | Area | Included behavior |
 | --- | --- |
 | Library | Import PDFs from Files/Open In; search filenames; thumbnails; rename; duplicate; delete with confirmation |
-| Reader | Scroll, zoom, text selection, text search and result navigation; iPhone and iPad layouts |
+| Reader | Horizontal book pages with native page curls, pinch/double-tap zoom, previous/next controls, remembered reading-mode preference; continuous PDFKit view for text selection, search and editing |
+| Interface | Native Liquid Glass controls on iOS 26; material fallback on iOS 17–18; simplified document homepage |
 | Markup | Highlight selected text; place free-text annotations and notes; draw ink; remove annotations; bounded undo |
 | Sign | Draw a signature and tap to place it as native PDF ink |
 | Pages | Rotate; move up/down; extract selected pages into a new PDF; delete selected pages while retaining at least one |
@@ -19,11 +20,13 @@ An original, native SwiftUI PDF workspace built with Apple's PDFKit, Vision, and
 | Protect | Unlock protected PDFs for reading; export an editable working document as a password-protected copy |
 | Export | Save PDF annotations; share a PDF copy using the system share sheet |
 
+Open a PDF in **Book** mode and swipe horizontally to turn pages. Use the arrows for single-page navigation, pinch or double-tap to zoom, and tap the pencil to edit. Tap the book button to return to reading at the same page. Search switches to the continuous view for text selection and result highlights. Reduce Motion uses horizontal sliding without page curls. Book pages display PDFKit-rendered images with page text exposed to VoiceOver; interactive links, forms, notes, and text selection use the PDFKit editing view.
+
 Imports are copied into the app's private document directory. Original source files are not overwritten. Save, Close, and application inactivity save the working copy. Changes that occur after the last completed save can be lost if the process is terminated unexpectedly. The document list remains private to the app; use Share to export copies. iOS backup settings may include app documents. User-initiated sharing sends content to the destination selected in the system sheet.
 
 ## Build on a Mac
 
-1. Install Xcode 16 or later with an iOS SDK and Simulator runtime.
+1. Install Xcode 26 or later with an iOS SDK and Simulator runtime.
 2. Open `FolioPDF.xcodeproj` and select the **FolioPDF** scheme.
 3. For the Simulator, select an available iPhone/iPad and choose **Product → Run**.
 4. For a physical iPhone, choose your team in **Signing & Capabilities** and replace `com.example.FolioPDF` with your own unique bundle ID. Connect the phone, enable Developer Mode when required, and run.
@@ -48,7 +51,7 @@ The Xcode alternative is **Product → Archive → Distribute App**, then choose
 
 ## Cloud Mac build
 
-The repository-root `.github/workflows/folio-ios.yml` builds the project in `FolioPDF/` on the `folio-pdf-build` branch. It compiles for the Simulator, runs the tests, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` after those steps succeed. [Build 39646444971](https://github.com/orkhnix/Tools/actions/runs/39646444971) completed successfully. Account billing and runner availability follow your GitHub plan.
+The repository-root `.github/workflows/folio-ios.yml` builds the project in `FolioPDF/` on the `folio-pdf-build` branch. It compiles for the Simulator, runs the tests, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` after those steps succeed. [Build 39650897234](https://github.com/orkhnix/Tools/actions/runs/39650897234) completed successfully. Account billing and runner availability follow your GitHub plan.
 
 The unsigned artifact still needs a legitimate signing/provisioning step before iPhone installation. No signing certificates are included. The workflow does not deploy an app, upload to the App Store, or grant App Store Connect access.
 
