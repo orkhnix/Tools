@@ -14,6 +14,15 @@ if [[ -z "$SIMULATOR_ID" ]]; then
   exit 1
 fi
 mkdir -p build
+test_action="${FOLIO_TEST_ACTION:-test}"
+case "$test_action" in
+  test|test-without-building) ;;
+  *) echo "FOLIO_TEST_ACTION must be test or test-without-building." >&2; exit 1 ;;
+esac
 xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Debug \
   -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
-  -resultBundlePath "build/Tests-$(date +%s).xcresult" CODE_SIGNING_ALLOWED=NO test
+  -derivedDataPath build/DerivedData -parallel-testing-enabled NO \
+  -maximum-concurrent-test-simulator-destinations 1 \
+  -test-timeouts-enabled YES -default-test-execution-time-allowance 30 \
+  -maximum-test-execution-time-allowance 60 \
+  -resultBundlePath "build/Tests-$(date +%s).xcresult" CODE_SIGNING_ALLOWED=NO "$test_action"

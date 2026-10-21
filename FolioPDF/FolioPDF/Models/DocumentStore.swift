@@ -55,7 +55,8 @@ final class DocumentStore: ObservableObject {
     }
 
     static func safeName(_ raw: String) -> String {
-        let stem = raw.replacingOccurrences(of: ".pdf", with: "", options: [.caseInsensitive, .anchored, .backwards])
+        let stem = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ".pdf", with: "", options: [.caseInsensitive, .anchored, .backwards])
         let forbidden = CharacterSet(charactersIn: "/\\:\n\r\t").union(.controlCharacters)
         let clean = stem.components(separatedBy: forbidden).joined(separator: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)

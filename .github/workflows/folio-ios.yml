@@ -21,7 +21,15 @@ jobs:
           persist-credentials: false
       - name: Show selected Xcode
         run: xcodebuild -version
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO build-for-testing
       - name: Test on iPhone Simulator
+        timeout-minutes: 12
+        env:
+          FOLIO_TEST_ACTION: test-without-building
         run: bash scripts/test_ios.sh
       - name: Build unsigned device archive
         run: |
