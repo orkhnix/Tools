@@ -5,16 +5,16 @@ Updated 21 October 2026. An unsigned iOS device IPA was compiled, packaged, down
 ## Build evidence
 
 - Repository: https://github.com/orkhnix/Tools/tree/folio-pdf-build/FolioPDF
-- Build: https://github.com/orkhnix/Tools/actions/runs/39642201220
-- Tested source commit: `740b6dc3010337d7c5cc856f360e37d83ad56ffe`
+- Build: https://github.com/orkhnix/Tools/actions/runs/39646444971
+- Tested source commit: `d11d5cb3290654ca5a84873dc2f0fdab2d90faf6`
 - Xcode: 16.4 (16F6), GitHub macOS runner
 - Simulator compilation: succeeded
-- XCTest: 12 tests executed, zero failures
+- XCTest: 16 tests executed, zero failures
 - Release iOS device archive: succeeded
 - IPA packaging/upload: succeeded
-- Artifact: `FolioPDF-unsigned.ipa`, 233146 bytes
-- IPA SHA-256: `d746170cf48a8a074a0e5709797f6702ca9e68044b134bdb8de4c5c732efa0fb`
-- Bundle ID: `com.example.FolioPDF`, version 1.0 (build 1)
+- Artifact: `FolioPDF-unsigned.ipa`, 245930 bytes
+- IPA SHA-256: `d488fffee34b58f05816995e30d48b89ccf682fa9681b6b1bfb54d7e771b1f6f`
+- Bundle ID: `com.example.FolioPDF`, version 1.0.1 (build 2)
 - Device architecture: arm64; Mach-O platform: iOS device
 - Minimum iOS: 17.0
 - No developer signature, embedded provisioning profile, or executable encryption
@@ -37,3 +37,7 @@ Page extraction and deletion; rejection of invalid/all-page operations; annotati
 7. Background/resume with edits open, retain original backups, and test persistence and memory pressure.
 
 No physical-device testing, signing, installation, comprehensive visual QA, App Store review, or production-readiness certification is claimed. Documentation-only updates after the tested source commit do not change the app binary.
+
+## Version 1.0.1 import regression checks
+
+The importer now stages app-owned copies using a worker thread. Tests confirm that a blocked reader leaves the main thread responsive, a stalled reader times out, invalid input leaves a visible error and clears progress, and a later valid PDF still imports after an invalid file in the same batch. These four tests and the preceding twelve passed in the build above. The native Files-picker flow and the user-reported file still require confirmation on the physical device.

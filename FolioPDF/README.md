@@ -2,7 +2,7 @@
 
 An original, native SwiftUI PDF workspace built with Apple's PDFKit, Vision, and VisionKit. Requires iOS/iPadOS 17 or later. No third-party app dependencies, login, subscription, analytics, or app-operated document uploads.
 
-**Build status: unsigned IPA produced successfully.** GitHub Actions built the iOS device archive with Xcode 16.4 on macOS and all 12 automated iPhone Simulator tests passed. [Successful build](https://github.com/orkhnix/Tools/actions/runs/39642201220), source commit `740b6dc3010337d7c5cc856f360e37d83ad56ffe`. The downloaded IPA was checked for ZIP integrity, arm64 executable architecture, iOS device platform, required assets, and absence of encryption, a developer signature, and a provisioning profile. It requires iOS 17.0 or later and must be signed with your certificate and matching provisioning profile before installation. Physical-device behavior and visual/UI workflows have not been comprehensively verified. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
+**Build status: version 1.0.1 (2), unsigned IPA produced successfully.** GitHub Actions built the iOS device archive with Xcode 16.4 on macOS and all 16 automated iPhone Simulator tests passed. [Successful build](https://github.com/orkhnix/Tools/actions/runs/39646444971), source commit `d11d5cb3290654ca5a84873dc2f0fdab2d90faf6`. The downloaded IPA was checked for ZIP integrity, arm64 executable architecture, iOS device platform, required assets, and absence of encryption, a developer signature, and a provisioning profile. It requires iOS 17.0 or later and must be signed with your certificate and matching provisioning profile before installation. Physical-device behavior and visual/UI workflows have not been comprehensively verified. No Adobe binaries, source code, private APIs, or assets were examined or copied, and no reverse engineering of Adobe Acrobat was performed.
 
 ## Implemented in source
 
@@ -48,7 +48,7 @@ The Xcode alternative is **Product → Archive → Distribute App**, then choose
 
 ## Cloud Mac build
 
-The repository-root `.github/workflows/folio-ios.yml` builds the project in `FolioPDF/` on the `folio-pdf-build` branch. It compiles for the Simulator, runs the tests, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` after those steps succeed. [Build 39642201220](https://github.com/orkhnix/Tools/actions/runs/39642201220) completed successfully. Account billing and runner availability follow your GitHub plan.
+The repository-root `.github/workflows/folio-ios.yml` builds the project in `FolioPDF/` on the `folio-pdf-build` branch. It compiles for the Simulator, runs the tests, builds an unsigned device archive, and publishes `FolioPDF-unsigned.ipa` after those steps succeed. [Build 39646444971](https://github.com/orkhnix/Tools/actions/runs/39646444971) completed successfully. Account billing and runner availability follow your GitHub plan.
 
 The unsigned artifact still needs a legitimate signing/provisioning step before iPhone installation. No signing certificates are included. The workflow does not deploy an app, upload to the App Store, or grant App Store Connect access.
 
@@ -80,3 +80,7 @@ See `VALIDATION.md` for completed checks and required Mac/device checks. Keep ba
 - [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 
 No Adobe affiliation or endorsement is claimed.
+
+## Version 1.0.1 import fix
+
+Import PDF now uses the native copy-mode document picker. Reading, coordinating, validating, and staging a provider file happen off the main thread; the app displays progress and a 30-second timeout/error instead of waiting indefinitely. Import starts after the picker dismisses. Successful imports clear the filename search and show a confirmation. Four additional regression tests cover main-thread responsiveness during a blocked reader, provider timeout, visible failure/progress cleanup, and a batch containing an invalid file. All 16 tests pass. Confirmation with the reported PDF on the physical iPhone is still pending.
