@@ -63,18 +63,84 @@ final class PDFOperationsTests: XCTestCase {
         XCTAssertThrowsError(try PDFOperations.imagesToPDF([]))
     }
 
-    func testImportCopiesAndDoesNotOverwriteOriginal() throws {
+    func testImportCopiesAndDoesNotOverwriteOriginal() async throws {
         let root = try temporaryDirectory()
         let store = DocumentStore(directory: root.appendingPathComponent("Library"))
         let original = root.appendingPathComponent("Original.pdf")
         let data = PDFOperations.welcomePDF()
         try data.write(to: original)
-        store.importURLs([original, original])
+        await store.importURLs([original, original])
         XCTAssertNil(store.error)
         XCTAssertEqual(store.documents.count, 2)
         XCTAssertEqual(Set(store.documents.map(\.name)), ["Original", "Original 2"])
         XCTAssertEqual(try Data(contentsOf: original), data)
         XCTAssertTrue(store.documents.allSatisfy { $0.url != original })
+        XCTAssertFalse(store.isImporting)
+    }
+
+    func testImportFailureShowsErrorAndClearsProgress() async throws {
+        let root = try temporaryDirectory()
+        let store = DocumentStore(directory: root.appendingPathComponent("Library"))
+        let original = root.appendingPathComponent("Broken.pdf")
+        let bytes = Data("not a PDF".utf8)
+        try bytes.write(to: original)
+        let imported = await store.importURLs([original])
+        XCTAssertTrue(imported.isEmpty)
+        XCTAssertTrue(store.documents.isEmpty)
+        XCTAssertFalse(store.isImporting)
+        XCTAssertTrue(store.error?.contains("Broken.pdf") == true)
+        XCTAssertEqual(try Data(contentsOf: original), bytes)
+    }
+
+    func testProviderReadDoesNotBlockMainThread() async throws {
+        let bytes = PDFOperations.welcomePDF()
+        let readerStarted = expectation(description: "Background reader started")
+        let mainThreadResponded = expectation(description: "Main thread stayed responsive")
+        let releaseReader = DispatchSemaphore(value: 0)
+        let task = Task {
+            try await PDFImportService.prepare(URL(fileURLWithPath: "/test.pdf"), timeout: 3) { _ in
+                XCTAssertFalse(Thread.isMainThread)
+                readerStarted.fulfill()
+                _ = releaseReader.wait(timeout: .now() + 2)
+                return bytes
+            }
+        }
+        await fulfillment(of: [readerStarted], timeout: 2)
+        DispatchQueue.main.async {
+            mainThreadResponded.fulfill()
+            releaseReader.signal()
+        }
+        await fulfillment(of: [mainThreadResponded], timeout: 2)
+        let prepared = try await task.value
+        defer { try? FileManager.default.removeItem(at: prepared.stagedURL) }
+        XCTAssertEqual(try Data(contentsOf: prepared.stagedURL), bytes)
+    }
+
+    func testProviderTimeoutReturnsInsteadOfWaitingForever() async throws {
+        let bytes = PDFOperations.welcomePDF()
+        let releaseReader = DispatchSemaphore(value: 0)
+        defer { releaseReader.signal() }
+        do {
+            _ = try await PDFImportService.prepare(URL(fileURLWithPath: "/slow.pdf"), timeout: 0.05) { _ in
+                _ = releaseReader.wait(timeout: .now() + 2)
+                return bytes
+            }
+            XCTFail("A stalled provider must time out")
+        } catch { XCTAssertTrue(error is PDFImportError) }
+    }
+
+    func testImportContinuesAfterOneInvalidFile() async throws {
+        let root = try temporaryDirectory()
+        let store = DocumentStore(directory: root.appendingPathComponent("Library"))
+        let bad = root.appendingPathComponent("Bad.pdf")
+        let good = root.appendingPathComponent("Good.pdf")
+        try Data("not a PDF".utf8).write(to: bad)
+        try PDFOperations.welcomePDF().write(to: good)
+        let imported = await store.importURLs([bad, good])
+        XCTAssertEqual(imported.count, 1)
+        XCTAssertEqual(store.documents.first?.name, "Good")
+        XCTAssertFalse(store.isImporting)
+        XCTAssertNotNil(store.error)
     }
 
     func testUnsafeNamesStayInsideDocumentDirectory() throws {

@@ -30,6 +30,9 @@ enum FolioError: LocalizedError {
 final class DocumentStore: ObservableObject {
     @Published private(set) var documents: [LibraryDocument] = []
     @Published var error: String?
+    @Published private(set) var isImporting = false
+    @Published private(set) var importingName = ""
+    private var activeImports = 0
     let directory: URL
 
     init(directory: URL? = nil) {
@@ -85,29 +88,32 @@ final class DocumentStore: ObservableObject {
         return url
     }
 
-    func importURLs(_ urls: [URL]) {
+    @discardableResult
+    func importURLs(_ urls: [URL]) async -> [URL] {
+        guard !urls.isEmpty else { return [] }
+        activeImports += 1
+        isImporting = true
+        error = nil
+        defer {
+            activeImports -= 1
+            isImporting = activeImports > 0
+            if !isImporting { importingName = "" }
+            reload()
+        }
         var failures: [String] = []
+        var imported: [URL] = []
         for url in urls {
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            importingName = url.lastPathComponent
             do {
-                // Coordinated access also handles documents provided by iCloud / Files providers.
-                var coordinationError: NSError?
-                var readError: Error?
-                NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { readable in
-                    do {
-                        let size = try readable.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                        guard size <= 150 * 1_024 * 1_024 else { throw FolioError.tooLarge }
-                        let bytes = try Data(contentsOf: readable)
-                        guard bytes.count <= 150 * 1_024 * 1_024 else { throw FolioError.tooLarge }
-                        try add(data: bytes, named: url.deletingPathExtension().lastPathComponent)
-                    } catch { readError = error }
-                }
-                if let e = coordinationError { throw e }
-                if let e = readError { throw e }
+                let prepared = try await PDFImportService.prepare(url)
+                defer { try? FileManager.default.removeItem(at: prepared.stagedURL) }
+                let destination = availableURL(named: prepared.suggestedName)
+                try FileManager.default.moveItem(at: prepared.stagedURL, to: destination)
+                imported.append(destination)
             } catch { failures.append("\(url.lastPathComponent): \(error.localizedDescription)") }
         }
         if !failures.isEmpty { error = failures.joined(separator: "\n") }
+        return imported
     }
 
     func delete(_ item: LibraryDocument) {

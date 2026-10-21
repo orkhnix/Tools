@@ -9,7 +9,7 @@ struct FolioPDFApp: App {
             LibraryView()
                 .environmentObject(store)
                 .tint(Theme.accent)
-                .onOpenURL { url in store.importURLs([url]) }
+                .onOpenURL { url in Task { await store.importURLs([url]) } }
         }
     }
 }

@@ -1,6 +1,26 @@
 import UIKit
 import SwiftUI
 import VisionKit
+import UniformTypeIdentifiers
+
+struct PDFDocumentPicker: UIViewControllerRepresentable {
+    let completion: ([URL]) -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        // Import mode asks Files to provide an app-owned copy, including cloud downloads.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.pdf], asCopy: true)
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+    func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {}
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let completion: ([URL]) -> Void
+        init(completion: @escaping ([URL]) -> Void) { self.completion = completion }
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { completion(urls) }
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { completion([]) }
+    }
+}
 
 struct ActivitySheet: UIViewControllerRepresentable {
     let items: [Any]
