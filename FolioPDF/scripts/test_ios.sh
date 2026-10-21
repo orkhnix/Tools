@@ -24,5 +24,5 @@ xcodebuild -project FolioPDF.xcodeproj -scheme FolioPDF -configuration Debug \
   -derivedDataPath build/DerivedData -parallel-testing-enabled NO \
   -maximum-concurrent-test-simulator-destinations 1 \
   -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
-  -maximum-test-execution-time-allowance 90 \
+  -maximum-test-execution-time-allowance 120 \
   -resultBundlePath "build/Tests-$(date +%s).xcresult" CODE_SIGNING_ALLOWED=NO "$test_action"

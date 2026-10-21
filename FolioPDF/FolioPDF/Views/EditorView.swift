@@ -95,8 +95,10 @@ struct EditorView: View {
                         Button(model.bookmarks.contains(model.pageIndex) ? "Remove bookmark" : "Bookmark page",
                                systemImage: model.bookmarks.contains(model.pageIndex) ? "bookmark.fill" : "bookmark") { model.toggleBookmark() }
                         Button("Bookmarks", systemImage: "bookmark") { sheet = .bookmarks }
+                            .accessibilityIdentifier("reader-bookmarks")
                         Button("Go to page", systemImage: "number") { openJump() }
                         Button("Appearance", systemImage: "circle.lefthalf.filled") { sheet = .appearance }
+                            .accessibilityIdentifier("reader-appearance")
                         Divider()
                         Button("Search text", systemImage: "magnifyingglass") { reading = false; model.tool = .browse; searching.toggle() }
                         Button("Pages", systemImage: "square.grid.2x2") { sheet = .pages }
@@ -113,7 +115,7 @@ struct EditorView: View {
                             Button("Discard changes and close", systemImage: "xmark", role: .destructive) { discardPrompt = true }
                         }
                     } label: { Image(systemName: "ellipsis.circle") }
-                    .accessibilityLabel("Document actions").disabled(model.document.isLocked || !model.loadedSuccessfully)
+                    .accessibilityLabel("Document actions").accessibilityIdentifier("reader-actions").disabled(model.document.isLocked || !model.loadedSuccessfully)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {

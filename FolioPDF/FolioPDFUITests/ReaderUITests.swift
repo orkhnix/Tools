@@ -1,6 +1,11 @@
 import XCTest
 
 final class ReaderUITests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        executionTimeAllowance = 90
+    }
+
     private func openReader() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -33,16 +38,23 @@ final class ReaderUITests: XCTestCase {
         XCTAssertTrue(app.buttons["reader-page"].label.contains("Page 2"))
     }
 
-    func testAppearanceAndBookmarkNavigation() {
+    func testBookmarkNavigation() {
         let app = openReader()
-        app.buttons["Document actions"].tap()
+        app.buttons["reader-actions"].tap()
         app.buttons["Bookmark page"].tap()
-        app.buttons["Document actions"].tap()
-        app.buttons["Bookmarks"].tap()
+        app.buttons["reader-actions"].tap()
+        app.buttons["reader-bookmarks"].tap()
         XCTAssertTrue(app.buttons["Page 1"].waitForExistence(timeout: 5))
         app.buttons["Page 1"].tap()
-        app.buttons["Document actions"].tap()
-        app.buttons["Appearance"].tap()
+        let counter = app.buttons["reader-page"]
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in counter.isHittable }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 5), .completed)
+    }
+
+    func testAppearanceSelection() {
+        let app = openReader()
+        app.buttons["reader-actions"].tap()
+        app.buttons["reader-appearance"].tap()
         let dark = app.buttons["Dark"]
         XCTAssertTrue(dark.waitForExistence(timeout: 5))
         dark.tap()

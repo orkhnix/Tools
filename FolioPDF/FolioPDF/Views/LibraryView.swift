@@ -86,7 +86,7 @@ struct LibraryView: View {
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { librarySheet = .appearance } label: { Image(systemName: "circle.lefthalf.filled") }
-                        .accessibilityLabel("Appearance")
+                        .accessibilityLabel("Appearance").accessibilityIdentifier("library-appearance")
                     Menu {
                         Button("Import PDF", systemImage: "doc.badge.plus") { librarySheet = .importPDF }
                         Button("Photos to PDF", systemImage: "photo.on.rectangle") { choosingPhotos = true }
